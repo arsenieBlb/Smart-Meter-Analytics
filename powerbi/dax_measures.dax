@@ -1,0 +1,63 @@
+Total Consumption =
+SUM ( fact_meter_reading[consumption_value] )
+
+Active Meters =
+CALCULATE (
+    DISTINCTCOUNT ( dim_meter[meter_id] ),
+    dim_meter[status] = "Active"
+)
+
+Total Meters =
+DISTINCTCOUNT ( dim_meter[meter_id] )
+
+Missing Reading % =
+DIVIDE (
+    CALCULATE ( COUNTROWS ( fact_meter_reading ), fact_meter_reading[is_missing] = TRUE () ),
+    COUNTROWS ( fact_meter_reading )
+)
+
+Reading Success Rate =
+1 - [Missing Reading %]
+
+Anomaly Count =
+CALCULATE (
+    COUNTROWS ( fact_meter_reading ),
+    fact_meter_reading[is_anomaly] = TRUE ()
+)
+
+Critical Meter Count =
+CALCULATE (
+    DISTINCTCOUNT ( fact_meter_health[meter_id] ),
+    fact_meter_health[health_status] = "Critical"
+)
+
+Average Daily Consumption =
+DIVIDE (
+    [Total Consumption],
+    DISTINCTCOUNT ( dim_date[full_date] )
+)
+
+Consumption Previous Month =
+CALCULATE (
+    [Total Consumption],
+    PREVIOUSMONTH ( dim_date[full_date] )
+)
+
+MoM Consumption Change % =
+DIVIDE (
+    [Total Consumption] - [Consumption Previous Month],
+    [Consumption Previous Month]
+)
+
+Average Health Score =
+AVERAGE ( fact_meter_health[health_score] )
+
+Data Freshness Hours =
+AVERAGE ( fact_meter_health[data_freshness_hours] )
+
+Estimated Reading % =
+DIVIDE (
+    CALCULATE ( COUNTROWS ( fact_meter_reading ), fact_meter_reading[is_estimated] = TRUE () ),
+    COUNTROWS ( fact_meter_reading )
+)
+

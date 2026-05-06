@@ -1,0 +1,3 @@
+DROP SCHEMA IF EXISTS utility CASCADE;
+CREATE SCHEMA utility;
+
