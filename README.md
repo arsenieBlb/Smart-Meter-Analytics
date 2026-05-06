@@ -1,75 +1,106 @@
 # Smart Meter Analytics
 
-Smart Meter Analytics is a portfolio project that shows how a utility company can turn daily smart-meter readings into useful business insights.
+Smart Meter Analytics is an end-to-end utility data project that turns synthetic smart-meter readings into trusted operational KPIs, API endpoints, SQL reporting views, and a Power BI dashboard build package.
 
-The app simulates smart meters from homes, shops, offices, and industrial customers. It creates realistic meter readings, checks the data for problems, stores it in a database-ready star schema, exposes key numbers through a FastAPI backend, and provides a complete Power BI build package for a dashboard.
+It answers a practical utility question: are meters reporting, is the data trustworthy, and where should operations teams focus attention?
 
-In simple terms: this project answers the question, "Are our meters working, is the data trustworthy, and what does consumption look like across customers and regions?"
+## Project Snapshot
 
-## Why I Built This
+- Generates realistic smart-meter data for electricity, water, and heat meters.
+- Cleans and validates readings with realistic issues: missing values, duplicates, delayed readings, estimates, inactive meters, and anomalies.
+- Loads a PostgreSQL star schema with reporting views for KPIs, consumption trends, meter health, data quality, and anomaly triage.
+- Exposes analytics through FastAPI with versioned `/api/v1` routes and CSV fallback for local demos.
+- Provides Power BI-ready DAX, semantic model guidance, report layout notes, and generated GitHub preview media.
+- Runs offline with generated data, so no external dataset is required.
 
-I built this project to show the kind of work I want to do in a Data & Analytics student worker role: not just making charts, but building the data foundation behind them.
+## Dashboard Preview
 
-A dashboard is only useful if the data behind it is reliable. This project demonstrates the full path from raw meter readings to business-ready metrics:
+The image below is generated from the same processed CSV data used by the project. It is GitHub preview media, not a replacement for the real Power BI Desktop build described in `powerbi/`.
 
-- generating realistic data
-- cleaning and validating it
-- designing a PostgreSQL analytics model
-- creating SQL views for reporting
-- exposing KPIs through an API
-- documenting how to build the Power BI dashboard
+![Executive Overview dashboard](docs/assets/screenshots/executive-overview.png)
 
-It is meant to be practical, easy to run, and understandable for both technical and business readers.
+### Preview Gallery
 
-## Who This Helps
+| Consumption Analysis | Meter Health & Data Quality |
+|---|---|
+| ![Consumption Analysis dashboard](docs/assets/screenshots/consumption-analysis.png) | ![Meter Health and Data Quality dashboard](docs/assets/screenshots/meter-health-data-quality.png) |
 
-For a utility company, smart-meter data can answer important operational questions:
+| Anomaly Detection | Metric Definitions |
+|---|---|
+| ![Anomaly Detection dashboard](docs/assets/screenshots/anomaly-detection.png) | ![Metric Definitions dashboard](docs/assets/screenshots/metric-definitions.png) |
 
-- Which regions use the most electricity, water, or heat?
-- Which meters are not sending readings?
-- How much of the data is missing or estimated?
-- Which meters look unhealthy or delayed?
-- Are there abnormal consumption spikes that need investigation?
-- Can business users trust the dashboard numbers?
+### Demo GIF
 
-This helps operations teams find meter problems faster, helps analysts build trusted reports, and helps managers understand consumption and data quality at a glance.
+![Smart Meter Analytics dashboard demo](docs/assets/demo/smart-meter-analytics-demo.gif)
 
-## What The App Does
-
-The project has three main parts:
-
-1. A Python data pipeline that creates and cleans synthetic smart-meter data.
-2. A PostgreSQL-ready analytics model with tables, validation checks, and reporting views.
-3. A FastAPI backend and Power BI build package for business reporting.
-
-The project works fully offline using generated data, so it does not depend on downloading a large external dataset.
-
-## How It Works
+## Architecture
 
 ```mermaid
 flowchart LR
     A["Synthetic smart-meter readings"] --> B["Python pipeline"]
-    B --> C["Clean CSV files"]
+    B --> C["Processed CSV files"]
     C --> D["PostgreSQL star schema"]
     D --> E["SQL analytics views"]
     D --> F["Validation checks"]
-    E --> G["FastAPI endpoints"]
+    E --> G["FastAPI analytics API"]
     E --> H["Power BI dashboard package"]
+    C --> G
 ```
 
-The pipeline creates customers, meters, regions, daily readings, missing readings, duplicate readings, estimated readings, delayed readings, anomalies, and meter health scores.
+The API can read from PostgreSQL when available. For lightweight local demos, it can fall back to generated CSV files.
 
-The SQL layer turns that data into business-friendly views for KPIs, daily consumption, monthly consumption, regional data quality, meter health, and anomaly summaries.
+## What This Demonstrates
 
-The API exposes the most important information through endpoints such as:
+- Data generation and cleaning with Python and pandas.
+- Dimensional modeling for analytics.
+- PostgreSQL DDL, indexes, validation checks, and reporting views.
+- FastAPI service design with health checks, versioned routes, filters, pagination, and fallback behavior.
+- Business metric documentation and dashboard planning.
+- CI coverage for the pipeline, SQL contracts, API behavior, and generated preview media.
 
-- `/api/kpis`
-- `/api/meters`
-- `/api/regions/quality`
-- `/api/anomalies`
-- `/api/data-quality/events`
+## Latest API Improvements
 
-Power BI can connect either to PostgreSQL or directly to the generated CSV files.
+The API now includes a more production-shaped surface while keeping the demo easy to run.
+
+**Health**
+
+- `GET /health/liveness` - process is up.
+- `GET /health/readiness` - checks database readiness. In `demo_fallback` mode, unavailable Postgres returns a degraded response and CSV fallback can still serve demo data. In `strict_db` mode, database failure returns HTTP 503.
+
+**Versioned routes**
+
+- `GET /api/v1/kpis` - executive KPI summary.
+- `GET /api/v1/meters` - meter list with `meter_type`, `region`, `health_status`, `limit`, and `offset`.
+- `GET /api/v1/meters/{meter_id}` - meter detail.
+- `GET /api/v1/regions/quality` - regional data-quality summary.
+- `GET /api/v1/anomalies` - anomaly list with date range, region, customer type, meter type, reason, limit, and offset filters.
+- `GET /api/v1/data-quality/events` - data-quality events with semantic severity ordering and pagination.
+- `GET /api/v1/consumption/time-series` - daily or monthly consumption aggregates with date range, region, customer type, meter type, limit, and offset filters.
+
+Legacy aliases such as `/api/kpis`, `/api/meters`, and `/api/consumption/time-series` remain available for demo compatibility.
+
+## Data Model
+
+The PostgreSQL layer uses a star schema:
+
+- `dim_date`
+- `dim_region`
+- `dim_customer`
+- `dim_meter`
+- `fact_meter_reading`
+- `fact_meter_health`
+- `fact_data_quality_event`
+
+Reporting views include:
+
+- `vw_executive_kpis`
+- `vw_daily_consumption`
+- `vw_monthly_consumption`
+- `vw_meter_health`
+- `vw_region_data_quality`
+- `vw_anomaly_summary`
+
+The schema name is configurable through `DB_SCHEMA` and defaults to `utility`.
 
 ## Example Business Metrics
 
@@ -83,31 +114,32 @@ Power BI can connect either to PostgreSQL or directly to the generated CSV files
 - Data Freshness Hours
 - Estimated Reading %
 
-Each metric is documented in `metric_definitions.md` so a business user can understand what it means and where it comes from.
+Metric definitions are documented in `metric_definitions.md`.
 
 ## Tech Stack
 
 - Python 3.12+
-- pandas
-- pydantic-settings
+- pandas and numpy
 - PostgreSQL
 - SQLAlchemy and psycopg2
 - FastAPI and Uvicorn
+- pydantic-settings
 - pytest and HTTPX
 - Docker Compose
-- SQL views and validation scripts
 - Power BI-ready DAX and documentation
+- Pillow for generated dashboard preview media
 
 ## Repository Structure
 
 ```text
-data/                 Raw, processed, and sample CSV exports
-python/               Synthetic data generation, cleaning, loading, orchestration
-sql/                  PostgreSQL schema, tables, views, checks, sample queries
-api/                  FastAPI app, routers, services, schemas
+api/                  FastAPI app, routers, schemas, and services
+data/                 Raw, processed, and sample export folders
+docs/                 Portfolio summaries and generated preview assets
+powerbi/              DAX, semantic model guide, layout guide, preview generator
+python/               Data generation, cleaning, loading, and orchestration
+sql/                  Schema, tables, views, validation checks, sample queries
 tests/                Offline pytest coverage
-powerbi/              DAX measures and Power BI build guide
-docs/                 Recruiter summary, CV bullets, interview explanation
+.github/workflows/    CI workflow
 ```
 
 ## Setup
@@ -126,13 +158,12 @@ Copy the environment template:
 Copy-Item .env.example .env
 ```
 
-The default setup generates:
+Important environment settings:
 
-- 1,000 customers
-- 1,200 meters
-- 6 Danish regions or cities
-- 12 months of daily readings
-- missing readings, duplicates, anomalies, inactive meters, delayed readings, and estimated readings
+- `DB_SCHEMA=utility` - PostgreSQL schema used for tables and views.
+- `API_DB_MODE=demo_fallback` - use CSV fallback when database queries fail. Set `strict_db` for production-like 503 behavior.
+- `API_AUTO_LOAD_DATA=true` - Docker API startup can regenerate and load data automatically.
+- `POSTGRES_PASSWORD=postgres` and `PGADMIN_DEFAULT_PASSWORD=admin` - development defaults only. Replace them outside local demos.
 
 ## Run The Data Pipeline
 
@@ -140,37 +171,31 @@ The default setup generates:
 python -m python.run_pipeline
 ```
 
-This creates CSV files in:
+This creates processed CSV files in:
 
 - `data/processed/`
 - `data/sample_exports/`
 
-The pipeline prints a summary showing how many customers, meters, readings, missing values, anomalies, and quality events were created.
-
-The validation summary may show duplicate readings as a finding. This is intentional because the synthetic data includes a small number of realistic data-quality issues for demonstration.
+The default data set contains 1,000 customers, 1,200 meters, 12 months of daily readings, and realistic data-quality issues for demonstration.
 
 ## Start The API Without Docker
-
-This is the easiest way to test the project:
 
 ```powershell
 python -m uvicorn api.main:app --reload
 ```
 
-Open:
+Open the interactive API docs:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-The API can use the generated CSV files, so PostgreSQL is not required for a quick demo.
+PostgreSQL is optional for a quick demo because the API can serve from processed CSV files in `demo_fallback` mode.
 
 ## Start PostgreSQL With Docker
 
-If Docker Desktop is installed and running:
-
 ```powershell
-docker compose up -d postgres pgadmin
+docker compose up -d postgres
 ```
 
 PostgreSQL defaults:
@@ -181,23 +206,25 @@ PostgreSQL defaults:
 - User: `postgres`
 - Password: `postgres`
 
-pgAdmin is available at:
+pgAdmin is optional and runs under the `tools` profile:
+
+```powershell
+docker compose --profile tools up -d postgres pgadmin
+```
+
+pgAdmin is then available at:
 
 ```text
 http://localhost:5050
 ```
 
-If you already have a local PostgreSQL running on port `5432`, change `POSTGRES_PORT` in `.env` to `5433`.
-
 ## Load Data Into PostgreSQL
-
-After PostgreSQL is running:
 
 ```powershell
 python -m python.run_pipeline --load-postgres
 ```
 
-This creates the `utility` schema, loads the generated data, and creates the Power BI-ready SQL views.
+This creates the configured schema, loads generated CSV data, and creates the reporting views.
 
 ## Run The API With Docker
 
@@ -205,13 +232,7 @@ This creates the `utility` schema, loads the generated data, and creates the Pow
 docker compose up --build api
 ```
 
-The Docker API service waits for PostgreSQL, generates synthetic data, loads the database, creates SQL views, and starts FastAPI.
-
-Set this in `.env` if you do not want Docker to reload data every time:
-
-```env
-API_AUTO_LOAD_DATA=false
-```
+The API service waits for Postgres, optionally generates and loads data, and starts FastAPI on port `8000`.
 
 ## Run Tests
 
@@ -219,7 +240,17 @@ API_AUTO_LOAD_DATA=false
 pytest
 ```
 
-The test suite checks generated data, validation logic, API contracts, and SQL view definitions. It does not require PostgreSQL by default.
+The tests cover:
+
+- Data generation behavior.
+- Validation logic.
+- SQL contract checks.
+- API contracts and CSV fallback behavior.
+- Configurable schema safeguards.
+- Data-quality severity ordering.
+- Generated dashboard preview media.
+
+CI runs the pipeline and test suite on pushes and pull requests to `main` or `master`.
 
 ## Connect Power BI
 
@@ -231,7 +262,7 @@ PostgreSQL option:
 2. Select `Get data > PostgreSQL database`.
 3. Server: `localhost:5432`.
 4. Database: `smart_utility`.
-5. Import the `utility` tables and views.
+5. Select the configured schema, usually `utility`.
 6. Follow `powerbi/semantic_model_guide.md`.
 
 CSV option:
@@ -241,39 +272,46 @@ CSV option:
 3. Import files from `data/processed/`.
 4. Create relationships using `powerbi/semantic_model_guide.md`.
 
-This repository does not generate a finished `.pbix` file automatically. Instead, it provides the DAX measures, model instructions, report layout guide, metric definitions, and screenshot checklist needed to build the dashboard manually.
+This repository does not generate a finished `.pbix` file automatically. It provides DAX measures, model instructions, page layout guidance, metric definitions, and screenshot guidance for manually building the Power BI report.
 
-## What Screenshots To Add
+## Regenerate Preview Media
 
-After building the dashboard, add screenshots for:
+If the generated data or dashboard preview script changes, refresh the README images:
 
-- Executive Overview page
-- Consumption Analysis page
-- Meter Health & Data Quality page
-- Anomaly Detection page
-- Metric Definitions page
-- FastAPI docs page
-- Pipeline terminal summary
-- Power BI model relationship view
+```powershell
+python powerbi/generate_dashboard_media.py
+```
+
+The script creates PNG previews in `docs/assets/screenshots/` and a short GIF in `docs/assets/demo/`.
+
+## Production Readiness Notes
+
+This is a portfolio project with several production-oriented improvements already started. Remaining next steps include:
+
+- Add authentication and authorization before exposing the API beyond localhost.
+- Run the API container as a non-root user.
+- Add a migration runner for schema upgrades instead of direct SQL apply order.
+- Add caching or precomputed aggregate files for hot read endpoints and CSV fallback performance.
+- Add structured request logging, correlation IDs, and basic API metrics.
+- Continue polishing the real Power BI `.pbix` report separately from generated GitHub preview media.
+
+## What Screenshots To Capture
+
+After building the real Power BI dashboard, capture:
+
+- Executive Overview.
+- Consumption Analysis.
+- Meter Health & Data Quality.
+- Anomaly Detection.
+- Metric Definitions.
+- Power BI model relationship view.
+- FastAPI Swagger/OpenAPI docs.
+- Pipeline terminal summary.
 
 See `powerbi/screenshot_checklist.md`.
-
-## What This Project Shows
-
-This project demonstrates:
-
-- practical Python data engineering
-- PostgreSQL star schema design
-- SQL analytics views
-- data validation and quality checks
-- FastAPI backend development
-- Power BI semantic model planning
-- business metric documentation
-- self-service BI thinking
-- clear communication for technical and non-technical users
 
 ## CV Bullet Examples
 
 - Built Smart Meter Analytics, an end-to-end utility data project using Python, PostgreSQL, SQL, FastAPI, and Power BI documentation to monitor consumption, meter health, anomalies, and data quality.
 - Designed a PostgreSQL star schema and SQL reporting views for Power BI analysis across regions, customer segments, meter types, and operational KPIs.
-- Implemented a synthetic smart-meter data pipeline with validation checks for duplicates, missing readings, invalid IDs, delayed readings, and anomaly consistency.
+- Implemented a synthetic smart-meter data pipeline with validation checks for duplicates, missing readings, invalid IDs, delayed readings, anomaly consistency, and meter health scoring.
